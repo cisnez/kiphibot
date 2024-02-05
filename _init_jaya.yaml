@@ -1,0 +1,33 @@
+# _init_jaya.yaml
+command_prefix: "#"
+ignored_prefixes:
+username: "JayaByrd"
+nicknames:
+  - "JB"
+  - "Jaya"
+  - "Jayabyrd"
+  - "JayaByrd#8578"
+color: "cyan"
+intents:
+  typing: true
+  presences: true
+  messages: true
+  guilds: true
+  members: true
+  message_content: true
+bot_channel_id: 1088511652619632670
+self_channel_id: 971587271780360202
+self_author_id: 971580205586067526
+self_author_name: "JayaByrd#8578"
+home_channel_id: 971587271780360202
+hello_channel_id: 875425963448610859
+ignore_channel_ids:
+ignore_author_ids:
+allow_channel_ids:
+ - *bot_channel_id
+allow_author_ids:
+sd_model_id: "danbrown/RPG-v4"
+pre_prompt: 'JayaByrd-KPHISTYLE :phæomelanin: coppertone illustration :UTAH ZEF: blanca-trenzas'
+post_prompt: 'Octane_render, cinematic_masterpiece :dof:'
+neg_prompt: 'low quality, deformed anatomy, jpeg artifacts, blurry, censored, UI elements, textual elements'
+max_clip_tokens: 77
