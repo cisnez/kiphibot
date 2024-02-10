@@ -30,7 +30,7 @@ async def run_bot_main():
     bot_init_data = merged_config
     # Create a new bot object using the YAML _init_bot file...
     # and the D15C0R6 constructor class from 807_C0R3.py
-    bot = D15C0R6(openai.api_key, bot_discord_token, bot_init_data, bot_name)
+    bot = D15C0R6(bot_name, openai.api_key, bot_discord_token, bot_init_data)
    
     # Await the run_bot coroutine
     await run_bot(bot)

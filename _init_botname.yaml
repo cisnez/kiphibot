@@ -10,21 +10,21 @@ intents:
   message_content: true
 ignored_prefixes:
   - "rpg"
-self_author_name: "JayaByrd#8578"
+bot_channel_id: &bot_channel_id 1088511652619632670
+self_channel_id: 971587271780360202
 self_author_id: 971580205586067526
-self_channel_id: 971587271780360202 # 🦸🏿│jayabyrd
-bot_channel_id: &bot_channel_id 1088511652619632670 # ⏱│be-on-time
-home_channel_id: 1091382149514526842 # 🌌│kiphi-chat
-hello_channel_id: 875425963448610859 # 👋│welcome-hello
+self_author_name: "JayaByrd#8578"
+home_channel_id: 971587271780360202
+hello_channel_id: 875425963448610859
 ignore_channel_ids:
  - *bot_channel_id
 ignore_author_ids:
- - 
+ -
 allow_channel_ids:
  - 
 allow_author_ids:
  - 
-gpt_model: "gpt-3.5-turbo"   # examples: gpt-3.5-turbo OR gpt-4
+gpt_model: "gpt-3.5-turbo"  # example "gpt-4" OR "gpt-3.5-turbo"
 sd_model: "pirsusEpicRealismV40.safetensors"
 prePrompt: 'JayaByrd-KPHISTYLE :phæomelanin: coppertone illustration :UTAH ZEF: blanca-trenzas'
 postPrompt: 'Octane_render, cinematic_masterpiece :dof:'

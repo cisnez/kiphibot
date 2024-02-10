@@ -1,5 +1,5 @@
 # _init__global.yaml
-response_tokens: 300
+response_tokens: 300 # 300 tokens normally fits in Discord's 2000 character limit
 path_to_sd_model: "/home/cisnez/Downloads"
 path_to_saved_images: "/home/cisnez/source/_img_"
 ignored_prefixes:
