@@ -55,11 +55,6 @@ class D15C0R6(commands.Bot):
         self.prePrompt = bot_init_data["prePrompt"]
         self.postPrompt = bot_init_data["postPrompt"]
         self.negPrompt = bot_init_data["negPrompt"]
-
-        self.prePrompt_tokens = tokenizer.tokenize(self.prePrompt)
-        self.postPrompt_tokens = tokenizer.tokenize(self.postPrompt)
-        self.negPrompt_tokens = tokenizer.tokenize(self.negPrompt)
-
         self.maxCLIPtokens = bot_init_data["maxCLIPtokens"]
 
         # A set ensures that these collections only store unique elements
@@ -70,8 +65,6 @@ class D15C0R6(commands.Bot):
         
         super().__init__(command_prefix=command_prefix, intents=intents)
 
-        self.processing_lock = Lock()
-        self.busy = False
         # a bot-is-busy switch to buffer incoming messages.
         # would like to start with True and set False after on_ready() finishes.
         # however, on_ready is using .art command, which Jaya also responds too.
@@ -79,11 +72,8 @@ class D15C0R6(commands.Bot):
         self.buffered_messages = []
 
         self.should_continue = True
-        self.session = aiohttp.ClientSession()
 
         self.sd_pipe_txt2img = StableDiffusionPipeline.from_single_file(f"{self.path_to_sd_model}/{self.sd_model}") 
-
-        self.sd_pipe_components = self.sd_pipe_txt2img.components
 
         # We are swapping it to DPMSolverMultistepScheduler (DPM-Solver++)) here:
         self.sd_pipe_txt2img.scheduler = DPMSolverMultistepScheduler.from_config(self.sd_pipe_txt2img.scheduler.config)
@@ -97,41 +87,6 @@ class D15C0R6(commands.Bot):
 
         self.system_message_counter = 0
 
-        # Define wrapper_tokens and its token count
-        self.wrapper_string = f"{self.prePrompt}§{self.postPrompt}"
-        self.wrapper_char_count = len(self.wrapper_string)
-        #self.wrapper_tokens = word_tokenize(self.wrapper_string)
-        self.wrapper_tokens = tokenizer.tokenize(self.wrapper_string)
-        self.wrapper_token_count = len(self.wrapper_tokens)
-
-        # Initialize with prompt wrapper for to Tokenize the message content in self.q4_message_history
-        self.q4_tokens = []     # self.wrapper_tokens[:]
-        self.q4_char_count = 0   # len(f"{self.prePrompt} {self.postPrompt}")
-
-        # print the init
-        logging.info(f'\nself.wrapper_string:\n{self.wrapper_string}\n')
-        logging.info(f'\nself.wrapper_tokens:\n{self.wrapper_tokens}\n')
-        logging.info(f'self.wrapper_char_count: {self.wrapper_char_count}')
-        logging.info(f'self.wrapper_token_count: {self.wrapper_token_count}')
-        logging.info(f'self.q4_tokens: {self.q4_tokens}')
-        logging.info(f'self.q4_char_count: {self.q4_char_count}\n')
-
-    # bot is an instance of `commands.Bot` NOT `commands.AutoShardedBot``
-    @commands.command()
-    async def get_channels(self, ctx):
-        try:
-            logging.info(f'{self} :received `get_channels` command.')
-            guild = ctx.guild
-            channels = await guild.fetch_channels()  
-            text_channels = [channel for channel in channels if isinstance(channel, discord.TextChannel)]
-
-            for channel in text_channels:
-                await ctx.send(channel.name)
-        except discord.Forbidden:
-            logging.info("Bot does not have permission to perform this action.")
-        except Exception as e:
-            logging.info(f"An error occurred: {e}")
-
     async def on_ready(self):
         logging.info(f"{self.user} is connected to Discord and ready to receive commands.")
         asyncio.create_task(self.process_buffered_messages())
@@ -139,12 +94,6 @@ class D15C0R6(commands.Bot):
     async def on_disconnect(self):
         await self.session.close()
         logging.info(f'{self.user} has disconnected from Discord.')
-
-    async def shutdown(self):
-        await self.session.close()
-        await self.session.wait_closed()
-        logging.info("-- aiohttp.ClientSession Closed --")
-        await self.close()
 
     async def close(self):
         await super().close()
@@ -184,12 +133,6 @@ class D15C0R6(commands.Bot):
             self.buffered_messages.append(message)
             return
 
-        elif message.content == "!shutdown" and await self.is_owner(message.author):
-            logging.info("!shutdown command received")
-            await message.channel.send(f'`!shutdown` command received')
-            self.should_continue = False
-            await self.shutdown()
-
         elif message.channel.id in self.ignore_channel_ids:
             logging.info(f'Ignored Channel ID: {message.channel.name}')
 
@@ -211,13 +154,11 @@ class D15C0R6(commands.Bot):
             logging.info(f'.art (full prompt):\n{full_prompt}\n')
             seed, guidance_scale, steps, full_prompt, image_path = self.generate_image(full_prompt)
             logging.info('generate_image returned\n')
-            # Create the output file name by appending "stamp-" to the base file name
-            output_file = postfix_filename(image_path, "-coin")  # Generate new filename with '-framed' postfix
             try:
                 self.scale_image(image_path, ".scaled_art_image.png", 1440, 1800) # 4:5
-                self.add_frame(".scaled_art_image.png", '.frame_image_heads_4x5.png', output_file)
-                image_file = discord.File(output_file)
-                logging.info(f"File prepared for sending: {output_file}")
+                self.add_frame(".scaled_art_image.png", '.frame_image_heads_4x5.png', image_path)
+                image_file = discord.File(image_path)
+                logging.info(f"File prepared for sending: {image_path}")
             except Exception as e:
                 self.image_generation_in_progress = False
                 logging.error(f"Error occurred while preparing the image: {e}")
@@ -329,6 +270,10 @@ class D15C0R6(commands.Bot):
     def unicode_to_shortcode(self, text):
         return emoji.demojize(text)
 
+    def generate_random_string(self):
+        alphanumeric_chars = string.digits + string.ascii_letters
+        return ''.join(random.choice(alphanumeric_chars) for _ in range(8))
+
     def generate_image(self, prompt):
         steps = random.randint(29, 39)
         guidance_scale = random.randint(8, 16)
@@ -344,7 +289,7 @@ class D15C0R6(commands.Bot):
             negative_prompt=self.negPrompt,
             generator=generator
         ).images[0]
-        randoname = generate_random_string()
+        randoname = self.generate_random_string()
         rando_txt = f'{self.path_to_saved_images}/{self.bot_name}-{randoname}.txt'
         rando_jpg = f'{self.path_to_saved_images}/{self.bot_name}-{randoname}.jpg'
         image.save(rando_jpg)
@@ -378,24 +323,3 @@ def get_gpt_response(sys_prompt, usr_prompt, model, max_tokens, n_responses, cre
         exception_error = (f"Error in get_gpt_response: {e}")
         logging.error(exception_error)
         return exception_error
-
-def postfix_filename(file_path: str, postfix: str) -> str:
-    """
-    Add a postfix to a filename just before the extension. For example, 
-    if filename is "image.png" and postfix is "-stamped", this function
-    returns "image-stamped.png".
-
-    Args:
-    file_path (str): Path to the file.
-    postfix (str): Text to append to the filename.
-
-    Returns:
-    str: Path to the new file with the postfix.
-    """
-    path = Path(file_path)
-    new_path = path.with_stem(path.stem + postfix)
-    return str(new_path)
-
-def generate_random_string():
-    alphanumeric_chars = string.digits + string.ascii_letters
-    return ''.join(random.choice(alphanumeric_chars) for _ in range(8))
