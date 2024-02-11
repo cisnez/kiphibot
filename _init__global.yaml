@@ -8,7 +8,8 @@ ignored_prefixes:
 ignore_channel_ids:
   - 
 ignore_author_ids:
-  - 
+ - 555955826880413696   # EPIC RPG#4117
+ - 714535458826354698  # PandaPong#6213
 allow_channel_ids: 
   - 
 allow_author_ids:
