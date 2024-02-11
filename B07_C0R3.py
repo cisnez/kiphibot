@@ -3,48 +3,40 @@ import logging
 # Set logging level to INFO to see all logs
 logging.basicConfig(level=logging.INFO)
 
-import string
-import random
-import re
-import aiohttp
 import asyncio
-import openai
-import discord                 # pip install discord
-from asyncio import Lock
+from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
+import discord
 from discord.ext import commands
 from discord import Intents  
-from PIL import Image, ImageFont, ImageDraw
-from diffusers import StableDiffusionPipeline, DPMSolverMultistepScheduler
-import torch
-
-from transformers import GPT2Tokenizer  # Import the tokenizer module
-tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
-#from transformers import ImageCaptioningPipeline
-
-from pathlib import Path
-
-#import re   # designed to replace emoji shortcodes (like :thinking:) with their Unicode representations.
 import emoji  # convert Unicode emojis to their corresponding shortcodes.
+import openai
+from PIL import Image
+import random
+import re
+import string
+import torch
 
 class D15C0R6(commands.Bot):
     def __init__(self, bot_name, openai_api_key, discord_token, bot_init_data):
         self.bot_name = bot_name
         self.openai_api_key = openai_api_key
         self.discord_token = discord_token
-        # Parent class assignments for: super().__init__()
         intents = Intents(**bot_init_data["intents"])
         command_prefix = bot_init_data["command_prefix"]
-        
         # Assign all yaml values within the __init__ method
         self.ignored_prefixes = bot_init_data["ignored_prefixes"]
         self.home_channel_id = bot_init_data["home_channel_id"]
         self.username = bot_init_data["username"]
-
         self.self_channel_id = bot_init_data["self_channel_id"]
         self.self_author_id = bot_init_data["self_author_id"]
         self.self_author_name = bot_init_data["self_author_name"]
         self.bot_channel_id = bot_init_data["bot_channel_id"]
         self.hello_channel_id = bot_init_data["hello_channel_id"]
+        # A set ensures that these collections only store unique elements
+        self.allow_author_ids = set(bot_init_data["allow_author_ids"])
+        self.allow_channel_ids = set(bot_init_data["allow_channel_ids"])
+        self.ignore_author_ids = set(bot_init_data["ignore_author_ids"])
+        self.ignore_channel_ids = set(bot_init_data["ignore_channel_ids"])
         # Define OpenAI model and response tokens
         self.gpt_model = bot_init_data["gpt_model"]
         self.response_tokens = bot_init_data["response_tokens"]
@@ -56,22 +48,12 @@ class D15C0R6(commands.Bot):
         self.postPrompt = bot_init_data["postPrompt"]
         self.negPrompt = bot_init_data["negPrompt"]
         self.maxCLIPtokens = bot_init_data["maxCLIPtokens"]
-
-        # A set ensures that these collections only store unique elements
-        self.allow_author_ids = set(bot_init_data["allow_author_ids"])
-        self.allow_channel_ids = set(bot_init_data["allow_channel_ids"])
-        self.ignore_author_ids = set(bot_init_data["ignore_author_ids"])
-        self.ignore_channel_ids = set(bot_init_data["ignore_channel_ids"])
-        
+        # Parent class assignments for: super().__init__()
         super().__init__(command_prefix=command_prefix, intents=intents)
 
-        # a bot-is-busy switch to buffer incoming messages.
-        # would like to start with True and set False after on_ready() finishes.
-        # however, on_ready is using .art command, which Jaya also responds too.
+        # A bot-is-busy switch to buffer incoming messages.
         self.image_generation_in_progress = False    
         self.buffered_messages = []
-
-        self.should_continue = True
 
         self.sd_pipe_txt2img = StableDiffusionPipeline.from_single_file(f"{self.path_to_sd_model}/{self.sd_model}") 
 
@@ -98,18 +80,6 @@ class D15C0R6(commands.Bot):
     async def close(self):
         await super().close()
 
-    async def run_until_disconnected(self):
-        while self.should_continue:
-            try:
-                await self.start(self.discord_token)
-            except Exception as e:
-                logging.info(f"Error: {e}")
-
-            if self.should_continue:
-                await asyncio.sleep(5)
-            else:
-                await self.wait_for("close")  # Wait for the close event to complete
-    
     async def process_buffered_messages(self):
         while True:
             if len(self.buffered_messages) > 0 and not self.image_generation_in_progress:
