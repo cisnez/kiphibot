@@ -29,4 +29,4 @@ sd_model: "pirsusEpicRealismV40.safetensors"
 prePrompt: 'JayaByrd-KPHISTYLE :phæomelanin: coppertone illustration :UTAH ZEF: blanca-trenzas'
 postPrompt: 'Octane_render, cinematic_masterpiece :dof:'
 negPrompt: 'low quality, deformed anatomy, jpeg artifacts, blurry, censored, UI elements, textual elements'
-maxCLIPtokens: 77
+maxCLIPtokens: 77  # Maximum for SD 1.5 is 77

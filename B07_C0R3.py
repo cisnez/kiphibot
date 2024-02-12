@@ -1,4 +1,4 @@
-# Y4ML807.py
+# B07_C0R3.py
 import logging
 # Set logging level to INFO to see all logs
 logging.basicConfig(level=logging.INFO)
@@ -47,7 +47,7 @@ class D15C0R6(commands.Bot):
         self.prePrompt = bot_init_data["prePrompt"]
         self.postPrompt = bot_init_data["postPrompt"]
         self.negPrompt = bot_init_data["negPrompt"]
-        self.maxCLIPtokens = bot_init_data["maxCLIPtokens"]
+        self.maxCLIPtokens = bot_init_data["maxCLIPtokens"] # CLIP happens at 77 tokens
         # Parent class assignments for: super().__init__()
         super().__init__(command_prefix=command_prefix, intents=intents)
 
@@ -55,20 +55,16 @@ class D15C0R6(commands.Bot):
         self.image_generation_in_progress = False    
         self.buffered_messages = []
 
+        # Load the `.safetensor` file for Stable Diffusion
         self.sd_pipe_txt2img = StableDiffusionPipeline.from_single_file(f"{self.path_to_sd_model}/{self.sd_model}") 
 
-        # We are swapping it to DPMSolverMultistepScheduler (DPM-Solver++)) here:
+        # We are swapping scheduler to DPMSolverMultistepScheduler (DPM-Solver++)) here:
         self.sd_pipe_txt2img.scheduler = DPMSolverMultistepScheduler.from_config(self.sd_pipe_txt2img.scheduler.config)
-        logging.info(self.sd_pipe_txt2img.scheduler.compatibles)
+        logging.info(self.sd_pipe_txt2img.scheduler.compatibles) # show all schedulers
         # (if you don't swap the scheduler it will run with the default DDIM
-
+        # Send the pipeline to the CUDA device
         self.sd_pipe_txt2img = self.sd_pipe_txt2img.to("cuda")
         
-        # Initialize dictionaries to store message history
-        self.q4_message_history = ["~game~master~"]
-
-        self.system_message_counter = 0
-
     async def on_ready(self):
         logging.info(f"{self.user} is connected to Discord and ready to receive commands.")
         asyncio.create_task(self.process_buffered_messages())
@@ -96,13 +92,18 @@ class D15C0R6(commands.Bot):
         message_author_id = message.author.id
         message_author_name = message.author.name
         if self.image_generation_in_progress:
-            logging.info(":image_generation_in_progress:")
+            async with message.channel.typing():
+                logging.info(":image_generation_in_progress:")
             if message.content == "!flag":
                 logging.info('Not False command issued.')
                 self.image_generation_in_progress = False
             self.buffered_messages.append(message)
             return
-
+                    
+        elif message.content.startswith('.hello'):
+            logging.info(f'.hello from {message.author.name}')
+            await message.channel.send(f"Hello {message.author.name}!!")
+            
         elif message.channel.id in self.ignore_channel_ids:
             logging.info(f'Ignored Channel ID: {message.channel.name}')
 
@@ -148,11 +149,7 @@ class D15C0R6(commands.Bot):
                     await message.channel.send(f"Error deleting message: {e}")
                     logging.error(f"Error deleting message: {e}")
             await message.delete()  # Delete the command message
-                    
-        elif message.content.startswith('.hello'):
-            logging.info('.hello')
-            await message.channel.send("Hello Channel!")
-                    
+        
         elif message.content.startswith('.schedulers'):
             classes = self.sd_pipe_txt2img.scheduler.compatibles
             class_names = ""
