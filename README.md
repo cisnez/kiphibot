@@ -1,7 +1,7 @@
 # DiscordStableDiffusion
 
 ## Description
-A Discord bot using Discord `API` and Stable Diffusion `.safetensor` models; generates images from Discord posts that start with `.art`.
+A Discord bot using Discord `API` and Stable Diffusion `.safetensor` models; generates images from its own Discord posts that start with `.art:> `.
 
 ## Files
 main.py
