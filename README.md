@@ -4,10 +4,10 @@
 A Discord bot using Discord `API` and Stable Diffusion `.safetensor` models; generates images from its own Discord posts that start with `.art:> `.
 
 ## Files
-main.py
-B07_C0R3.py
-_init_botname.yaml
-_init__global.yaml
+####main.py
+####B07_C0R3.py
+####_init_botname.yaml
+####_init__global.yaml
 
 ## Requirements to run Stable Diffusion using Python and Nvidia CUDA.
 1. CUDA drivers
